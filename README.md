@@ -1,50 +1,65 @@
 # Fix First Due
 
-A one-click desktop shortcut that resets First Due in Edge and Chrome on Windows. It's for when the First Due web app
-hangs, spins forever or shows **RESULT_CODE_HUNG** in a normal window, while it still works in an InPrivate/Incognito window.
+**A free, one-click fix for First Due freezing or not loading on Windows computers.**
 
-Built by a fire district IT shop and shared for other First Due agencies. Not affiliated with or supported by First Due.
+Built by a fire district IT shop and shared with other First Due departments. Not affiliated with or supported by First Due.
 
-First Due stores a lot of data in the browser so it can work offline (cookies, IndexedDB, Cache Storage, a service
-worker). When that stored data gets into a bad state, the page stops loading until it's cleared. Clearing it by hand
-works: in `edge://settings/content/all`, search "firstdue" and click **Remove all shown**. This tool does the same
-thing so users can run it themselves.
+---
 
-## When to use it
+## Is this your problem?
 
-- First Due spins, freezes or won't finish loading in Edge or Chrome
-- "Page unresponsive" or `RESULT_CODE_HUNG`
-- First Due works in InPrivate/Incognito but not in a normal window
+Use this if First Due, in **Edge or Chrome**:
 
-> **Warning:** any ePCR that was saved offline and **hasn't uploaded yet is lost.** Make sure open reports are saved and
-> uploaded first. The tool's first dialog says this too.
+- spins forever or never finishes loading
+- freezes, or shows **"Page unresponsive"** or **RESULT_CODE_HUNG**
+- works in a private (InPrivate/Incognito) window but **not** in a normal window
 
-## Quick start (one PC)
+**Why it happens:** First Due stores a lot of data inside the web browser so it can work offline. Sometimes that stored
+data gets stuck, and First Due won't load until it's cleared. This tool clears it.
 
-1. Download this repo (**Code > Download ZIP**) and extract it.
-2. Open PowerShell **as administrator** in the extracted folder and run:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\src\Install.ps1
-   ```
-3. A **Fix First Due** shortcut appears on the desktop and in the Start menu for every user on that PC.
+## What your crews do
 
-To remove it, run `src\Uninstall.ps1` the same way. To deploy it to many PCs, see [Deploy with Intune](#deploy-with-intune);
-any tool that can run `Install.ps1` as SYSTEM also works (NinjaOne, PDQ, GPO startup script, and so on).
+1. Make sure any open report is **saved and uploaded**.
+2. Double-click **Fix First Due** on the desktop.
+3. Click **Yes**.
+4. Wait a few seconds. The browser closes and reopens on First Due.
+5. Sign in to First Due again. Done.
 
-## What the user sees
+> **Important:** a report that was saved offline and **has not uploaded yet will be lost.** The tool reminds them
+> before it runs.
 
-1. They double-click **Fix First Due** on the desktop or in the Start menu.
-2. A warning dialog appears. They click **Yes** to continue or **No** to cancel.
-3. Edge and Chrome close. The tool asks each window to close (so the browser saves its tabs), then force-closes
-   anything still open after 15 seconds.
-4. First Due's data is cleared from every Edge and Chrome profile.
-5. Edge reopens to `https://sizeup.firstduesizeup.com/` and a **Done** dialog appears. The user signs in to First Due
-   again.
+## Put it on a computer
 
-If something couldn't be cleared, an error dialog asks them to close all browser windows and run it again. Each run
-is logged to `%LOCALAPPDATA%\FirstDueFix\fix.log`.
+1. Click the green **Code** button at the top of this page, then **Download ZIP**.
+2. Open the downloaded file and drag the folder inside it to the desktop.
+3. Open that folder and double-click **Install.cmd**.
+   - If Windows says "Windows protected your PC", click **More info** and then **Run anyway**.
+   - Click **Yes** when Windows asks for administrator permission.
+4. The **Fix First Due** shortcut appears on the desktop for everyone who uses that computer.
 
-## What gets cleared
+To remove it later, double-click **Uninstall.cmd** in the same folder.
+
+**Lots of computers?** Send this page to whoever handles your IT. The section below has what they need to push it
+to every computer at once.
+
+---
+
+## For IT staff
+
+### What it does
+
+The shortcut runs `Fix-FirstDue.ps1`, which:
+
+1. shows a Yes/No warning
+2. closes Edge and Chrome: it asks each window to close, so the browser saves its tabs, then force-closes anything still
+   open after 15 seconds
+3. runs `Clear-FirstDueSiteData.ps1` against every Edge and Chrome profile
+4. reopens `https://sizeup.firstduesizeup.com/` in Edge and shows "Done", or shows an error asking the user to close
+   all browser windows and try again
+
+Each run is logged to `%LOCALAPPDATA%\FirstDueFix\fix.log`.
+
+### What gets cleared
 
 For each profile (`Default`, `Profile N`) under `%LOCALAPPDATA%\Microsoft\Edge\User Data` and
 `%LOCALAPPDATA%\Google\Chrome\User Data`:
@@ -56,35 +71,34 @@ For each profile (`Default`, `Profile N`) under `%LOCALAPPDATA%\Microsoft\Edge\U
 | WebStorage buckets (Cache Storage, partitioned storage) | buckets whose storage key contains `firstdue`, plus their `QuotaManager` rows |
 | Local Storage, Service Worker, Cache, Code Cache | **all sites**: these stores have no per-site split on disk |
 
-Sign-ins to other sites are kept, because they live in cookies and only First Due's cookies are deleted. Other sites
-rebuild their local storage and caches on the next visit.
+Sign-ins to other sites are kept, because only First Due's cookies are deleted. Other sites rebuild their local storage
+and caches on the next visit.
 
-Why files and not the browser itself: Chrome and Edge 136+ refuse remote debugging on the real user profile, so a
-script can't drive the browser's own "clear site data". The browser has to be closed while the files are removed.
+This is the file-level equivalent of `edge://settings/content/all` > search "firstdue" > **Remove all shown**. It works
+on the files because Chrome and Edge 136+ refuse remote debugging on the real user profile, so a script can't drive the
+browser's own "clear site data".
 
-## Files
+### Files
 
 | File | Purpose |
 |---|---|
+| `Install.cmd` / `Uninstall.cmd` | Double-click installers for a single PC; they ask for admin rights and run the `.ps1` |
 | `src/Fix-FirstDue.ps1` | What the shortcut runs: dialogs, closes the browsers, calls the clear script, reopens Edge |
 | `src/Clear-FirstDueSiteData.ps1` | Does the clearing. Can also run on its own |
-| `src/Install.ps1` | Intune install (SYSTEM): copies to `C:\ProgramData\FirstDueFix`, creates the shortcuts |
+| `src/Install.ps1` | Install (run as SYSTEM or admin): copies to `C:\ProgramData\FirstDueFix`, creates the shortcuts on the Public Desktop and the all-users Start menu |
 | `src/Uninstall.ps1` | Removes the shortcuts and `C:\ProgramData\FirstDueFix` |
 | `src/app.ico` | Shortcut icon. Replace it with your own if you like; keep the file name |
 | `Detect.ps1` | Intune detection: the desktop shortcut exists and `version.txt` matches |
 | `Upload-FixFirstDue.ps1` | Creates the Win32 app in Intune through Graph and assigns it as Required |
 
-## Deploy with Intune
+### Deploy with Intune
 
-### 1. Build the package
+The [latest release](https://github.com/RobertSTFD4/fix-firstdue/releases/latest) has a ready-built `.intunewin` and
+`Detect.ps1`. Or build the package yourself:
 
 ```powershell
 IntuneWinAppUtil.exe -c .\src -s Install.ps1 -o .\out -q
 ```
-
-### 2. Create the app
-
-Either upload it by hand or use the script.
 
 **By hand** (Intune > Apps > Windows > Add > Windows app (Win32)):
 
@@ -103,8 +117,11 @@ Connect-MgGraph -TenantId <tenant-id> -Scopes DeviceManagementApps.ReadWrite.All
 .\Upload-FixFirstDue.ps1 -TenantId <tenant-id> -GroupId <device-group-id> -Publisher "Your IT Dept"
 ```
 
-The script skips the upload if an app named "Fix First Due" already exists. It finishes by printing a `READBACK` line
-with the publishing state and the assignments; check that the assignment shows your group.
+Add `-IntuneWin <path>` if the package isn't at `out\Install.intunewin`. The script skips the upload if an app named
+"Fix First Due" already exists. It finishes by printing a `READBACK` line; check that the assignment shows your group.
+
+**Other tools:** anything that can run `src\Install.ps1` as SYSTEM works, such as NinjaOne, PDQ or a GPO startup
+script.
 
 ### Updating
 
@@ -112,9 +129,9 @@ Edit the files in `src`, then bump the version in **both** `src/Install.ps1` (`$
 the `.intunewin` and upload it as a new content version on the existing app. Devices with the old `version.txt` fail
 detection and reinstall.
 
-## Run without Intune
+### Run the clear on its own
 
-The clear script can run on its own, as the signed-in user, with Edge and Chrome closed:
+As the signed-in user, with Edge and Chrome closed:
 
 ```powershell
 # See what would be removed, change nothing
@@ -125,21 +142,21 @@ powershell -ExecutionPolicy Bypass -File .\src\Clear-FirstDueSiteData.ps1
 ```
 
 If a browser is still open, that browser is skipped. A browser running only in the background (Edge startup boost,
-Chrome background apps) has no window, so it gets stopped instead. Exit code `0` means the data was cleared or there
-was nothing to clear; `1` means a browser was skipped or something failed. Output is one line, for example:
+Chrome background apps) has no window, so it gets stopped instead.
+
+Exit code `0` means the data was cleared or there was nothing to clear; `1` means a browser was skipped or something
+failed. Output is one line, for example:
 `First Due site data cleared for jdoe: Edge/Default: cookies=12 idb=3 buckets=2 shared=4`.
 
-### Testing
+**Testing options:**
+- `Clear-FirstDueSiteData.ps1 -UserDataRoots <dir> -SkipProcessCheck` runs against a copy of a profile folder.
+- `Fix-FirstDue.ps1 -Quiet -UserDataRoots <dir>` runs the whole flow with no dialogs, and doesn't close or open
+  browsers.
 
-| Command | Effect |
-|---|---|
-| `Clear-FirstDueSiteData.ps1 -UserDataRoots <dir> -SkipProcessCheck` | runs against a copy of a profile folder |
-| `Fix-FirstDue.ps1 -Quiet -UserDataRoots <dir>` | runs the whole flow with no dialogs, without closing or opening browsers |
+### Requirements
 
-## Requirements
-
-- Windows 10/11 with Windows PowerShell 5.1 (uses the built-in `winsqlite3.dll`; nothing to install)
-- Edge and/or Chrome, Chromium-based storage layout (tested on Edge 157)
+- Windows 10/11 with the built-in Windows PowerShell 5.1. Nothing to install; it uses Windows' own `winsqlite3.dll`.
+- Edge and/or Chrome (tested on Edge 157).
 
 ## License
 
